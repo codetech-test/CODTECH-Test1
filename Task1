@@ -1,0 +1,61 @@
+'1. Database Schema'
+
+CREATE DATABASE 
+StudentGradingSystem;
+USE StudentGradingSystem; 
+CREATE TABLE Students ( student_id INTAUTO_INCREMENT PRIMARY KEY, first_name VARCHAR(50) NOT NULL, last_name VARCHAR(50) NOT NULL, email VARCHAR(100) UNIQUE NOT NULL ); 
+CREATE TABLE Courses ( course_id INT AUTO_INCREMENT PRIMARY KEY, course_code VARCHAR(10) UNIQUE NOT NULL, course_name VARCHAR(100) NOT NULL, credits INT CHECK (credits > 0) ); 
+CREATE TABLE Enrollments ( enrollment_id INT AUTO_INCREMENT PRIMARY KEY, student_id INT, course_id INT, FOREIGN KEY (student_id) REFERENCES Students(student_id), FOREIGN KEY (course_id) REFERENCES Courses(course_id) ); 
+
+'2. Sample Data Insertion'
+INSERT INTO Students (first_name, last_name, email) VALUES
+('John', 'Doe', 'john.doe@example.com'),
+('Jane', 'Smith', 'jane.smith@example.com');
+INSERT INTO Courses (course_code, course_name, credits) VALUES
+('CS101', 'Introduction to Computer Science', 4),
+('MATH201', 'Calculus I', 3);
+INSERT INTO Enrollments (student_id, course_id, semester) VALUES
+(1, 1, 'Fall 2026'), -- John in CS101
+(1, 2, 'Fall 2026'), -- John in MATH201
+(2, 1, 'Fall 2026'); -- Jane in CS101
+INSERT INTO Grades (enrollment_id, assessment_name, score_obtained) VALUES
+(1, 'Midterm', 85.00),
+(1, 'Final Exam', 92.00),
+(2, 'Midterm', 72.00),
+(2, 'Final Exam', 68.00);
+INSERT INTO Grades (enrollment_id, assessment_name, score_obtained) VALUES
+(3, 'Midterm', 95.00),
+(3, 'Final Exam', 98.00);
+'3. Grading Engine'
+SELECT 
+    s.first_name, 
+    s.last_name, 
+    c.course_code, 
+    g.assessment_name, 
+    g.score_obtained, 
+    g.max_score,
+    ROUND((g.score_obtained / g.max_score) * 100, 2) AS assessment_percentage
+FROM Grades g
+JOIN Enrollments e ON g.enrollment_id = e.enrollment_id
+JOIN Students s ON e.student_id = s.student_id
+JOIN Courses c ON e.course_id = c.course_id;
+'Final Report Card with Letter Grades'
+SELECT 
+    s.student_id,
+    CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+    c.course_code,
+    c.course_name,
+    ROUND(AVG((g.score_obtained / g.max_score) * 100), 2) AS final_percentage,
+    CASE 
+        WHEN AVG((g.score_obtained / g.max_score) * 100) >= 90 THEN 'A'
+        WHEN AVG((g.score_obtained / g.max_score) * 100) >= 80 THEN 'B'
+        WHEN AVG((g.score_obtained / g.max_score) * 100) >= 70 THEN 'C'
+        WHEN AVG((g.score_obtained / g.max_score) * 100) >= 60 THEN 'D'
+        ELSE 'F'
+    END AS final_letter_grade
+FROM Students s
+JOIN Enrollments e ON s.student_id = e.student_id
+JOIN Courses c ON e.course_id = c.course_id
+JOIN Grades g ON e.enrollment_id = g.enrollment_id
+GROUP BY s.student_id, student_name, c.course_id, c.course_code, c.course_name
+ORDER BY s.student_id ASC, final_percentage DESC;
